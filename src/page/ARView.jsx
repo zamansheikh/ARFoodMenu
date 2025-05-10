@@ -41,11 +41,16 @@ export default function ARView() {
 	};
 
 	const food = foodDetails || defaultFoodDetails;
+	useEffect(() => {
+		if (!selectedModel) {
+			navigate('/');
+		}
+	}, []);
 
 	return (
 		<div className="min-h-screen bg-gradient-to-b from-teal-50 to-gray-100 p-4">
 			{/* Header */}
-			<div className="flex justify-between items-center mb-4">
+			<div className="max-w-[748px] flex justify-between items-center mb-4">
 				<button
 					onClick={() => navigate(-1)}
 					className="text-teal-600 hover:text-teal-800 transition-colors">

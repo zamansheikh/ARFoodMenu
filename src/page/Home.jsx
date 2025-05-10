@@ -73,46 +73,58 @@ export default function ARMenu() {
 	const [selectedCategory, setSelectedCategory] = useState('All');
 	const [allFoods, setAllFoods] = useState([]);
 	const [categories, setCategories] = useState([]);
-	const [error, setError] = useState(null);
 	const [searchQuery, setSearchQuery] = useState('');
 	const [loading, setLoading] = useState(true);
 	const navigate = useNavigate();
 
-	// Fetch food data from the API
+	// Fetch food data from the API with retry logic
 	useEffect(() => {
 		const fetchFoods = async () => {
-			setLoading(true);
-			try {
-				const response = await axiosInstance.get('user_pov/get_all_food/4/');
-				if (response.status === 200) {
-					console.log('✅ Food List Fetched:', response.data);
+			setLoading(true); // Keep loading true until successful fetch
+			let retryCount = 0;
+			const maxRetries = 5; // Maximum number of retries
+			const retryDelay = 3000; // Delay between retries in milliseconds (3 seconds)
 
-					const flattenedFoods = response.data.flatMap((category) =>
-						category.foods.map((food) => ({
-							...food,
-							category: category.category_name,
-						}))
-					);
+			while (retryCount < maxRetries) {
+				try {
+					const response = await axiosInstance.get('user_pov/get_all_food/4/');
+					if (response.status === 200) {
+						console.log('✅ Food List Fetched:', response.data);
 
-					const uniqueFoods = Array.from(
-						new Map(flattenedFoods.map((food) => [food.id, food])).values()
-					);
-					setAllFoods(uniqueFoods);
+						const flattenedFoods = response.data.flatMap((category) =>
+							category.foods.map((food) => ({
+								...food,
+								category: category.category_name,
+							}))
+						);
 
-					const uniqueCategories = response.data
-						.filter((category) => category.foods.length > 0)
-						.map((category) => category.category_name);
-					const output = [...new Set(uniqueCategories)];
-					setCategories(['All', ...output]);
-				} else {
-					console.error('❌ Error fetching food list:', response.data.error);
-					setError('Failed to load foods. Please try again.');
+						const uniqueFoods = Array.from(
+							new Map(flattenedFoods.map((food) => [food.id, food])).values()
+						);
+						setAllFoods(uniqueFoods);
+
+						const uniqueCategories = response.data
+							.filter((category) => category.foods.length > 0)
+							.map((category) => category.category_name);
+						const output = [...new Set(uniqueCategories)];
+						setCategories(['All', ...output]);
+
+						setLoading(false); // Data fetched successfully, stop loading
+						break; // Exit the retry loop
+					} else {
+						throw new Error('Failed to load foods.');
+					}
+				} catch (error) {
+					console.error('❌ Error fetching food list:', error.message);
+					retryCount++;
+					if (retryCount === maxRetries) {
+						// After max retries, keep loading state true (no error shown)
+						setLoading(true);
+						break;
+					}
+					// Wait before retrying
+					await new Promise((resolve) => setTimeout(resolve, retryDelay));
 				}
-			} catch (error) {
-				console.error('❌ Error fetching food list:', error.message);
-				setError('Failed to load foods. Please try again.');
-			} finally {
-				setLoading(false);
 			}
 		};
 
@@ -131,8 +143,6 @@ export default function ARMenu() {
 				.slice(0, 4),
 		}))
 		.filter((group) => group.foods.length > 0);
-
-	console.log('Grouped Foods:', groupedFoods);
 
 	// Filter foods based on selected category
 	const filteredFoods =
@@ -163,284 +173,296 @@ export default function ARMenu() {
 	};
 
 	return (
-		<div className="min-h-screen bg-[#ffff] rounded-lg p-4">
-			{/* Banner */}
-			<div className="mb-6 mx-auto">
-				<video
-					src={banner}
-					alt="Banner"
-					className="w-full max-h-[300px] object-cover rounded-lg"
-					autoPlay
-					loop
-					muted
-					playsInline
-				/>
-			</div>
+		<div className="min-h-screen bg-gray-200 p-4">
+			{/* Container with max-width for desktop */}
+			<div className="max-w-[748px] mx-auto">
+				{/* Banner */}
+				<div className="mb-6">
+					<video
+						src={banner}
+						alt="Banner"
+						className="w-full max-h-[300px] object-cover rounded-lg"
+						autoPlay
+						loop
+						muted
+						playsInline
+					/>
+				</div>
 
-			{/* Search Bar */}
-			<div className="relative mb-4">
-				<input
-					type="text"
-					placeholder="Search for food"
-					value={searchQuery}
-					onChange={handleSearchChange}
-					className="w-full p-3 pl-10 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-teal-600"
-				/>
-				<FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-			</div>
+				{/* Search Bar */}
+				<div className="relative mb-4">
+					<input
+						type="text"
+						placeholder="Search for food"
+						value={searchQuery}
+						onChange={handleSearchChange}
+						className="w-full p-3 pl-10 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-teal-600"
+						disabled={loading} // Disable search while loading
+					/>
+					<FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+				</div>
 
-			{/* Loading Skeleton or Content */}
-			{loading ? (
-				<>
-					{/* Category Skeleton */}
-					<div className="mb-4">
-						<h3 className="text-lg font-bold text-gray-800 mb-2">Category</h3>
-						<CategorySkeletonLoader />
-					</div>
-					{/* Card Skeleton */}
-					<SkeletonLoader />
-				</>
-			) : error ? (
-				<p className="text-red-500 mb-4">{error}</p>
-			) : (
-				<>
-					{/* Search Results Section */}
-					{searchQuery && (
+				{/* Loading Skeleton or Content */}
+				{loading ? (
+					<>
+						{/* Category Skeleton */}
 						<div className="mb-4">
-							<h3 className="text-lg font-bold text-gray-800 mb-2">
-								Search Results
-							</h3>
-							{searchResults.length > 0 ? (
-								<div className="grid grid-cols-2 gap-4">
-									{searchResults.map((food) => (
-										<div
-											key={food.id}
-											className="bg-[#F5F5F5] rounded-[8px] shadow p-4 cursor-pointer"
-											onClick={() =>
-												handleFoodClick(food.three_d_picture, food)
-											}>
-											<img
-												src={
-													`${import.meta.env.VITE_REACT_BASE_API_URL}${
-														food.normal_picture
-													}` || 'https://via.placeholder.com/150'
-												}
-												alt={food.item_name}
-												className="w-full h-32 object-cover rounded-lg mb-2"
-											/>
-											<h4 className="text-md text-black font-semibold mb-1 truncate w-full">
-												{food.item_name}
-											</h4>
-											<div className="flex justify-between items-center text-sm text-gray-600">
-												<span>{food.price || '৳29.00'} BDT</span>
-												<span>⏰ {food.time || '4.8'}</span>
-											</div>
-										</div>
-									))}
-								</div>
-							) : (
-								<p className="text-gray-600">
-									No foods found matching your search.
-								</p>
-							)}
+							<h3 className="text-lg font-bold text-gray-800 mb-2">Category</h3>
+							<CategorySkeletonLoader />
 						</div>
-					)}
-
-					{!searchQuery && (
-						<>
-							{/* Category Buttons */}
+						{/* Card Skeleton */}
+						<SkeletonLoader />
+					</>
+				) : (
+					<>
+						{/* Search Results Section */}
+						{searchQuery && (
 							<div className="mb-4">
 								<h3 className="text-lg font-bold text-gray-800 mb-2">
-									Category
+									Search Results
 								</h3>
-								<div className="flex space-x-4 overflow-x-auto scrollbar-hide">
-									{categories.map((category, index) => (
-										<button
-											key={index}
-											className="flex flex-col items-center flex-shrink-0"
-											onClick={() => handleCategoryClick(category)}>
+								{searchResults.length > 0 ? (
+									<div className="grid grid-cols-2 gap-4">
+										{searchResults.map((food) => (
 											<div
-												className={`p-3 rounded-full ${
-													selectedCategory === category
-														? 'bg-teal-600 text-white'
-														: 'bg-gray-200'
-												}`}>
-												{categoryIcons[category] || <MdFastfood size={32} />}
-											</div>
-											<span className="text-sm mt-1">{category}</span>
-										</button>
-									))}
-								</div>
-							</div>
-
-							{/* Selected Category Food */}
-							<div className="mb-4">
-								<div className="flex justify-between items-center mb-2">
-									<h3 className="text-lg font-bold text-gray-800">
-										{selectedCategory} Food
-									</h3>
-									<Link
-										to={`/category-food/${selectedCategory.toLowerCase()}`}
-										className="text-teal-600">
-										See all
-									</Link>
-								</div>
-								{filteredFoods.length > 0 ? (
-									filteredFoods.length === 1 ? (
-										<div className="p-2">
-											<div
+												key={food.id}
 												className="bg-[#F5F5F5] rounded-[8px] shadow p-4 cursor-pointer"
 												onClick={() =>
-													handleFoodClick(
-														filteredFoods[0].three_d_picture,
-														filteredFoods[0]
-													)
+													handleFoodClick(food.three_d_picture, food)
 												}>
 												<img
 													src={
 														`${import.meta.env.VITE_REACT_BASE_API_URL}${
-															filteredFoods[0].normal_picture
+															food.normal_picture
 														}` || 'https://via.placeholder.com/150'
 													}
-													alt={filteredFoods[0].item_name}
+													alt={food.item_name}
 													className="w-full h-32 object-cover rounded-lg mb-2"
 												/>
-												<h4 className="text-md text-black font-semibold mb-1">
-													{filteredFoods[0].item_name}
+												<h4 className="text-md text-black font-semibold mb-1 truncate w-full">
+													{food.item_name}
 												</h4>
 												<div className="flex justify-between items-center text-sm text-gray-600">
-													<span>{filteredFoods[0].price || '৳29.00'} BDT</span>
-													<span>⏰ {filteredFoods[0].time || '4.8'}</span>
+													<span>{food.price || '৳29.00'} BDT</span>
+													<span>⏰ {food.time || '4.8'}</span>
 												</div>
 											</div>
-										</div>
-									) : (
-										<Slider {...getSliderSettings(filteredFoods.length)}>
-											{filteredFoods.map((food) => (
-												<div key={food.id} className="p-2">
-													<div
-														className="bg-[#F5F5F5] rounded-[8px] shadow p-4 cursor-pointer"
-														onClick={() =>
-															handleFoodClick(food.three_d_picture, food)
-														}>
-														<img
-															src={
-																`${import.meta.env.VITE_REACT_BASE_API_URL}${
-																	food.normal_picture
-																}` || 'https://via.placeholder.com/150'
-															}
-															alt={food.item_name}
-															className="w-full h-32 object-cover rounded-lg mb-2"
-														/>
-														<h4 className="text-md text-black font-semibold mb-1 truncate w-full">
-															{food.item_name}
-														</h4>
-														<div className="flex justify-between items-center text-sm text-gray-600">
-															<span>{food.price || '৳29.00'} BDT</span>
-															<span>⏰ {food.time || '4.8'}</span>
-														</div>
-													</div>
-												</div>
-											))}
-										</Slider>
-									)
+										))}
+									</div>
 								) : (
-									<p className="text-gray-600">
-										No foods found in this category.
-									</p>
+									<div className="flex flex-col items-center justify-center py-8">
+										<FaSearch className="text-gray-400 text-6xl mb-4" />
+										<p className="text-gray-600 text-center">
+											No foods found matching your search.
+										</p>
+									</div>
 								)}
 							</div>
+						)}
 
-							{/* All Foods by Category (Limited to 4 per Category) */}
-							{selectedCategory === 'All' && (
-								<div>
-									{groupedFoods.map((group) => (
-										<div key={group.name} className="mb-4">
-											<div className="flex justify-between items-center mb-2">
-												<h3 className="text-lg font-bold text-gray-800">
-													{group.name} Food
-												</h3>
-												<Link
-													to={`/category-food/${group.name.toLowerCase()}`}
-													className="text-teal-600">
-													See all
-												</Link>
+						{!searchQuery && (
+							<>
+								{/* Category Buttons */}
+								<div className="mb-4">
+									<h3 className="text-lg font-bold text-gray-800 mb-2">
+										Category
+									</h3>
+									<div className="flex space-x-4 overflow-x-auto scrollbar-hide">
+										{categories.map((category, index) => (
+											<button
+												key={index}
+												className="flex flex-col items-center flex-shrink-0"
+												onClick={() => handleCategoryClick(category)}>
+												<div
+													className={`p-3 rounded-full ${
+														selectedCategory === category
+															? 'bg-teal-600 text-white'
+															: 'bg-gray-200'
+													}`}>
+													{categoryIcons[category] || <MdFastfood size={32} />}
+												</div>
+												<span className="text-sm mt-1">{category}</span>
+											</button>
+										))}
+									</div>
+								</div>
+
+								{/* Selected Category Food */}
+								<div className="mb-4">
+									<div className="flex justify-between items-center mb-2">
+										<h3 className="text-lg font-bold text-gray-800">
+											{selectedCategory} Food
+										</h3>
+										<Link
+											to={`/category-food/${selectedCategory.toLowerCase()}`}
+											className="text-teal-600">
+											See all
+										</Link>
+									</div>
+									{filteredFoods.length > 0 ? (
+										filteredFoods.length === 1 ? (
+											<div className="p-2">
+												<div
+													className="bg-[#F5F5F5] rounded-[8px] shadow p-4 cursor-pointer"
+													onClick={() =>
+														handleFoodClick(
+															filteredFoods[0].three_d_picture,
+															filteredFoods[0]
+														)
+													}>
+													<img
+														src={
+															`${import.meta.env.VITE_REACT_BASE_API_URL}${
+																filteredFoods[0].normal_picture
+															}` || 'https://via.placeholder.com/150'
+														}
+														alt={filteredFoods[0].item_name}
+														className="w-full h-32 object-cover rounded-lg mb-2"
+													/>
+													<h4 className="text-md text-black font-semibold mb-1">
+														{filteredFoods[0].item_name}
+													</h4>
+													<div className="flex justify-between items-center text-sm text-gray-600">
+														<span>
+															{filteredFoods[0].price || '৳29.00'} BDT
+														</span>
+														<span>⏰ {filteredFoods[0].time || '4.8'}</span>
+													</div>
+												</div>
 											</div>
-											{group.foods.length > 0 ? (
-												group.foods.length > 1 ? (
-													<Slider {...getSliderSettings(group.foods.length)}>
-														{group.foods.map((food) => (
-															<div key={food.id} className="p-2">
-																<div
-																	className="bg-[#F5F5F5] rounded-[8px] shadow p-4 cursor-pointer"
-																	onClick={() =>
-																		handleFoodClick(food.three_d_picture, food)
-																	}>
-																	<img
-																		src={
-																			`${
-																				import.meta.env.VITE_REACT_BASE_API_URL
-																			}${food.normal_picture}` ||
-																			'https://via.placeholder.com/150'
-																		}
-																		alt={food.item_name}
-																		className="w-full h-32 object-cover rounded-lg mb-2"
-																	/>
-																	<h4 className="text-md text-black font-semibold mb-1 truncate w-full">
-																		{food.item_name}
-																	</h4>
-																	<div className="flex justify-between items-center text-sm text-gray-600">
-																		<span>{food.price || '৳29.00'} BDT</span>
-																		<span>⏰ {food.time || '4.8'}</span>
-																	</div>
-																</div>
-															</div>
-														))}
-													</Slider>
-												) : (
-													<div className="p-2 w-[50%]">
+										) : (
+											<Slider {...getSliderSettings(filteredFoods.length)}>
+												{filteredFoods.map((food) => (
+													<div key={food.id} className="p-2">
 														<div
 															className="bg-[#F5F5F5] rounded-[8px] shadow p-4 cursor-pointer"
 															onClick={() =>
-																handleFoodClick(
-																	group.foods[0].three_d_picture,
-																	group.foods[0]
-																)
+																handleFoodClick(food.three_d_picture, food)
 															}>
 															<img
 																src={
 																	`${import.meta.env.VITE_REACT_BASE_API_URL}${
-																		group.foods[0].normal_picture
+																		food.normal_picture
 																	}` || 'https://via.placeholder.com/150'
 																}
-																alt={group.foods[0].item_name}
+																alt={food.item_name}
 																className="w-full h-32 object-cover rounded-lg mb-2"
 															/>
-															<h4 className="text-md text-black font-semibold mb-1">
-																{group.foods[0].item_name}
+															<h4 className="text-md text-black font-semibold mb-1 truncate w-full">
+																{food.item_name}
 															</h4>
 															<div className="flex justify-between items-center text-sm text-gray-600">
-																<span>
-																	{group.foods[0].price || '৳29.00'} BDT
-																</span>
-																<span>⏰ {group.foods[0].time || '4.8'}</span>
+																<span>{food.price || '৳29.00'} BDT</span>
+																<span>⏰ {food.time || '4.8'}</span>
 															</div>
 														</div>
 													</div>
-												)
-											) : (
-												<p className="text-gray-600">
-													No foods found in {group.name} category.
-												</p>
-											)}
-										</div>
-									))}
+												))}
+											</Slider>
+										)
+									) : (
+										<p className="text-gray-600">
+											No foods found in this category.
+										</p>
+									)}
 								</div>
-							)}
-						</>
-					)}
-				</>
-			)}
+
+								{/* All Foods by Category (Limited to 4 per Category) */}
+								{selectedCategory === 'All' && (
+									<div>
+										{groupedFoods.map((group) => (
+											<div key={group.name} className="mb-4">
+												<div className="flex justify-between items-center mb-2">
+													<h3 className="text-lg font-bold text-gray-800">
+														{group.name} Food
+													</h3>
+													<Link
+														to={`/category-food/${group.name.toLowerCase()}`}
+														className="text-teal-600">
+														See all
+													</Link>
+												</div>
+												{group.foods.length > 0 ? (
+													group.foods.length > 1 ? (
+														<Slider {...getSliderSettings(group.foods.length)}>
+															{group.foods.map((food) => (
+																<div key={food.id} className="p-2">
+																	<div
+																		className="bg-[#F5F5F5] rounded-[8px] shadow p-4 cursor-pointer"
+																		onClick={() =>
+																			handleFoodClick(
+																				food.three_d_picture,
+																				food
+																			)
+																		}>
+																		<img
+																			src={
+																				`${
+																					import.meta.env
+																						.VITE_REACT_BASE_API_URL
+																				}${food.normal_picture}` ||
+																				'https://via.placeholder.com/150'
+																			}
+																			alt={food.item_name}
+																			className="w-full h-32 object-cover rounded-lg mb-2"
+																		/>
+																		<h4 className="text-md text-black font-semibold mb-1 truncate w-full">
+																			{food.item_name}
+																		</h4>
+																		<div className="flex justify-between items-center text-sm text-gray-600">
+																			<span>{food.price || '৳29.00'} BDT</span>
+																			<span>⏰ {food.time || '4.8'}</span>
+																		</div>
+																	</div>
+																</div>
+															))}
+														</Slider>
+													) : (
+														<div className="p-2 w-[50%]">
+															<div
+																className="bg-[#F5F5F5] rounded-[8px] shadow p-4 cursor-pointer"
+																onClick={() =>
+																	handleFoodClick(
+																		group.foods[0].three_d_picture,
+																		group.foods[0]
+																	)
+																}>
+																<img
+																	src={
+																		`${
+																			import.meta.env.VITE_REACT_BASE_API_URL
+																		}${group.foods[0].normal_picture}` ||
+																		'https://via.placeholder.com/150'
+																	}
+																	alt={group.foods[0].item_name}
+																	className="w-full h-32 object-cover rounded-lg mb-2"
+																/>
+																<h4 className="text-md text-black font-semibold mb-1">
+																	{group.foods[0].item_name}
+																</h4>
+																<div className="flex justify-between items-center text-sm text-gray-600">
+																	<span>
+																		{group.foods[0].price || '৳29.00'} BDT
+																	</span>
+																	<span>⏰ {group.foods[0].time || '4.8'}</span>
+																</div>
+															</div>
+														</div>
+													)
+												) : (
+													<p className="text-gray-600">
+														No foods found in {group.name} category.
+													</p>
+												)}
+											</div>
+										))}
+									</div>
+								)}
+							</>
+						)}
+					</>
+				)}
+			</div>
 		</div>
 	);
 }
