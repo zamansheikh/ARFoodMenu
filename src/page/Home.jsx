@@ -87,7 +87,7 @@ export default function ARMenu() {
 
 			while (retryCount < maxRetries) {
 				try {
-					const response = await axiosInstance.get('user_pov/get_all_food/4/');
+					const response = await axiosInstance.get('user_pov/get_all_food/6/');
 					if (response.status === 200) {
 						console.log('✅ Food List Fetched:', response.data);
 
@@ -173,7 +173,7 @@ export default function ARMenu() {
 	};
 
 	return (
-		<div className="min-h-screen bg-gray-200 p-4">
+		<div className="min-h-screen bg-[#ffff] p-3">
 			{/* Container with max-width for desktop */}
 			<div className="max-w-[748px] mx-auto">
 				{/* Banner */}
@@ -196,7 +196,7 @@ export default function ARMenu() {
 						placeholder="Search for food"
 						value={searchQuery}
 						onChange={handleSearchChange}
-						className="w-full p-3 pl-10 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-teal-600"
+						className="w-full p-3 pl-10 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-600"
 						disabled={loading} // Disable search while loading
 					/>
 					<FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
@@ -222,22 +222,21 @@ export default function ARMenu() {
 									Search Results
 								</h3>
 								{searchResults.length > 0 ? (
-									<div className="grid grid-cols-2 gap-4">
+									<div className="grid grid-cols-2 gap-3">
 										{searchResults.map((food) => (
 											<div
 												key={food.id}
-												className="bg-[#F5F5F5] rounded-[8px] shadow p-4 cursor-pointer"
+												className="bg-[#F5F5F5] rounded-[8px] shadow p-3 cursor-pointer"
 												onClick={() =>
 													handleFoodClick(food.three_d_picture, food)
 												}>
 												<img
 													src={
-														`${import.meta.env.VITE_REACT_BASE_API_URL}${
-															food.normal_picture
-														}` || 'https://via.placeholder.com/150'
+														`${food.normal_picture}` ||
+														'https://via.placeholder.com/150'
 													}
 													alt={food.item_name}
-													className="w-full h-32 object-cover rounded-lg mb-2"
+													className="w-full h-36 object-cover rounded-lg mb-2"
 												/>
 												<h4 className="text-md text-black font-semibold mb-1 truncate w-full">
 													{food.item_name}
@@ -276,7 +275,7 @@ export default function ARMenu() {
 												<div
 													className={`p-3 rounded-full ${
 														selectedCategory === category
-															? 'bg-teal-600 text-white'
+															? 'bg-blue-800 text-white'
 															: 'bg-gray-200'
 													}`}>
 													{categoryIcons[category] || <MdFastfood size={32} />}
@@ -295,15 +294,15 @@ export default function ARMenu() {
 										</h3>
 										<Link
 											to={`/category-food/${selectedCategory.toLowerCase()}`}
-											className="text-teal-600">
+											className="text-blue-800">
 											See all
 										</Link>
 									</div>
 									{filteredFoods.length > 0 ? (
 										filteredFoods.length === 1 ? (
-											<div className="p-2">
+											<div className="p-2 w-[50%]">
 												<div
-													className="bg-[#F5F5F5] rounded-[8px] shadow p-4 cursor-pointer"
+													className="bg-[#F5F5F5] rounded-[8px] shadow p-3 cursor-pointer"
 													onClick={() =>
 														handleFoodClick(
 															filteredFoods[0].three_d_picture,
@@ -312,12 +311,11 @@ export default function ARMenu() {
 													}>
 													<img
 														src={
-															`${import.meta.env.VITE_REACT_BASE_API_URL}${
-																filteredFoods[0].normal_picture
-															}` || 'https://via.placeholder.com/150'
+															`${filteredFoods[0].normal_picture}` ||
+															'https://via.placeholder.com/150'
 														}
 														alt={filteredFoods[0].item_name}
-														className="w-full h-32 object-cover rounded-lg mb-2"
+														className="w-full  h-36 object-cover rounded-lg mb-2"
 													/>
 													<h4 className="text-md text-black font-semibold mb-1">
 														{filteredFoods[0].item_name}
@@ -335,18 +333,17 @@ export default function ARMenu() {
 												{filteredFoods.map((food) => (
 													<div key={food.id} className="p-2">
 														<div
-															className="bg-[#F5F5F5] rounded-[8px] shadow p-4 cursor-pointer"
+															className="bg-[#F5F5F5] rounded-[8px] shadow p-3 cursor-pointer"
 															onClick={() =>
 																handleFoodClick(food.three_d_picture, food)
 															}>
 															<img
 																src={
-																	`${import.meta.env.VITE_REACT_BASE_API_URL}${
-																		food.normal_picture
-																	}` || 'https://via.placeholder.com/150'
+																	`${food.normal_picture}` ||
+																	'https://via.placeholder.com/150'
 																}
 																alt={food.item_name}
-																className="w-full h-32 object-cover rounded-lg mb-2"
+																className="w-full h-36 object-cover rounded-lg mb-2"
 															/>
 															<h4 className="text-md text-black font-semibold mb-1 truncate w-full">
 																{food.item_name}
@@ -378,7 +375,7 @@ export default function ARMenu() {
 													</h3>
 													<Link
 														to={`/category-food/${group.name.toLowerCase()}`}
-														className="text-teal-600">
+														className="text-blue-800">
 														See all
 													</Link>
 												</div>
@@ -388,7 +385,7 @@ export default function ARMenu() {
 															{group.foods.map((food) => (
 																<div key={food.id} className="p-2">
 																	<div
-																		className="bg-[#F5F5F5] rounded-[8px] shadow p-4 cursor-pointer"
+																		className="bg-[#F5F5F5] rounded-[8px] shadow p-3 cursor-pointer"
 																		onClick={() =>
 																			handleFoodClick(
 																				food.three_d_picture,
@@ -397,14 +394,11 @@ export default function ARMenu() {
 																		}>
 																		<img
 																			src={
-																				`${
-																					import.meta.env
-																						.VITE_REACT_BASE_API_URL
-																				}${food.normal_picture}` ||
+																				`${food.normal_picture}` ||
 																				'https://via.placeholder.com/150'
 																			}
 																			alt={food.item_name}
-																			className="w-full h-32 object-cover rounded-lg mb-2"
+																			className="w-full h-36 object-cover rounded-lg mb-2"
 																		/>
 																		<h4 className="text-md text-black font-semibold mb-1 truncate w-full">
 																			{food.item_name}
@@ -420,7 +414,7 @@ export default function ARMenu() {
 													) : (
 														<div className="p-2 w-[50%]">
 															<div
-																className="bg-[#F5F5F5] rounded-[8px] shadow p-4 cursor-pointer"
+																className="bg-[#F5F5F5] rounded-[8px] shadow p-3 cursor-pointer"
 																onClick={() =>
 																	handleFoodClick(
 																		group.foods[0].three_d_picture,
@@ -429,13 +423,11 @@ export default function ARMenu() {
 																}>
 																<img
 																	src={
-																		`${
-																			import.meta.env.VITE_REACT_BASE_API_URL
-																		}${group.foods[0].normal_picture}` ||
+																		`${group.foods[0].normal_picture}` ||
 																		'https://via.placeholder.com/150'
 																	}
 																	alt={group.foods[0].item_name}
-																	className="w-full h-32 object-cover rounded-lg mb-2"
+																	className="w-full h-36 object-cover rounded-lg mb-2"
 																/>
 																<h4 className="text-md text-black font-semibold mb-1">
 																	{group.foods[0].item_name}

@@ -52,7 +52,7 @@ export default function AllFood() {
 	};
 
 	return (
-		<div className="min-h-screen bg-[#fff] p-4">
+		<div className="min-h-screen from-blue-50 to-blue-100 p-4">
 			{/* Container with max-width for desktop */}
 			<div className="max-w-[748px] w-[748px] mx-auto">
 				{/* Header */}
@@ -83,9 +83,8 @@ export default function AllFood() {
 								)}
 								<img
 									src={
-										`${import.meta.env.VITE_REACT_BASE_API_URL}${
-											food.normal_picture
-										}` || 'https://via.placeholder.com/150'
+										`${food.normal_picture}` ||
+										'https://via.placeholder.com/150'
 									}
 									alt={food.item_name}
 									className="w-full h-32 object-cover rounded-lg mb-2"

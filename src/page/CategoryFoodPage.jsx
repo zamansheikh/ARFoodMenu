@@ -16,11 +16,11 @@ export default function CategoryFoodPage() {
 			setLoading(true); // Keep loading true until successful fetch
 			let retryCount = 0;
 			const maxRetries = 5; // Maximum number of retries
-			const retryDelay = 3000; // Delay between retries in milliseconds (3 seconds)
+			const retryDelay = 10; // Delay between retries in milliseconds (3 seconds)
 
 			while (retryCount < maxRetries) {
 				try {
-					const response = await axiosInstance.get('user_pov/get_all_food/4/');
+					const response = await axiosInstance.get('user_pov/get_all_food/6/');
 					if (response.status === 200) {
 						const flattenedFoods = response.data.flatMap((cat) =>
 							cat.foods.map((food) => ({
@@ -70,11 +70,11 @@ export default function CategoryFoodPage() {
 	);
 
 	return (
-		<div className="min-h-screen bg-[#ffff] p-4">
+		<div className="min-h-screen from-blue-50 to-blue-100 p-4">
 			{/* Container with max-width for desktop */}
 			<div className="max-w-[748px] mx-auto">
 				<div className="flex justify-between items-center mb-4">
-					<button onClick={() => navigate(-1)} className="text-teal-600">
+					<button onClick={() => navigate(-1)} className="text-blue-600">
 						<FaArrowLeft size={20} />
 					</button>
 					<h1 className="text-xl font-bold text-gray-800">
@@ -92,7 +92,7 @@ export default function CategoryFoodPage() {
 						placeholder="Search within category"
 						value={searchQuery}
 						onChange={handleSearchChange}
-						className="w-full p-3 pl-10 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-teal-600"
+						className="w-full p-3 pl-10 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-600"
 						disabled={loading} // Disable search while loading
 					/>
 					<FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
@@ -116,9 +116,8 @@ export default function CategoryFoodPage() {
 								}>
 								<img
 									src={
-										`${import.meta.env.VITE_REACT_BASE_API_URL}${
-											food.normal_picture
-										}` || 'https://via.placeholder.com/150'
+										`${food.normal_picture}` ||
+										'https://via.placeholder.com/150'
 									}
 									alt={food.item_name}
 									className="w-full h-[18vh] object-cover rounded-lg mb-2"
