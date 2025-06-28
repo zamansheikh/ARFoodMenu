@@ -50,7 +50,7 @@ export default function ARView() {
 	return (
 		<div className="min-h-screen items-center justify-center w-full bg-gradient-to-b from-blue-50 to-blue-100 p-4">
 			{/* Header */}
-			<div className=" max-w-[748px] w-[748px] mx-auto">
+			<div className=" max-w-[748px] md:w-[748px] mx-auto">
 				<div className=" flex justify-between items-center mb-4">
 					<button
 						onClick={() => navigate(-1)}
