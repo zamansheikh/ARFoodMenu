@@ -1,22 +1,64 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import axiosInstance from '../component/axiosInstance';
 import { FaArrowLeft, FaSearch } from 'react-icons/fa';
-import SkeletonLoader from '../component/SkeletonLoader'; // Import the skeleton loader component
+import axiosInstance from '../component/axiosInstance';
+
+// Custom CSS for scrollbar hiding and enhanced styling
+const styles = `
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  .scrollbar-hide {
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
+  }
+  .food-card {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+  .food-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+`;
+
+// Skeleton Loader for Food Cards
+const CardSkeleton = () => (
+	<div className="bg-gray-100 rounded-xl p-2.5 animate-pulse">
+		<div className="w-full h-28 bg-gray-200 rounded-lg mb-2"></div>
+		<div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+		<div className="flex justify-between">
+			<div className="h-3 bg-gray-200 rounded w-1/4"></div>
+			<div className="h-3 bg-gray-200 rounded w-1/4"></div>
+		</div>
+	</div>
+);
+
+// Skeleton Loader Grid
+const SkeletonLoader = () => (
+	<div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-3">
+		{Array(6)
+			.fill(0)
+			.map((_, index) => (
+				<CardSkeleton key={index} />
+			))}
+	</div>
+);
 
 export default function CategoryFoodPage() {
 	const { category } = useParams();
 	const [foods, setFoods] = useState([]);
-	const [loading, setLoading] = useState(true); // Add loading state
+	const [loading, setLoading] = useState(true);
+	const [error, setError] = useState(null);
 	const [searchQuery, setSearchQuery] = useState('');
 	const navigate = useNavigate();
 
 	useEffect(() => {
 		const fetchFoods = async () => {
-			setLoading(true); // Keep loading true until successful fetch
+			setLoading(true);
+			setError(null);
 			let retryCount = 0;
-			const maxRetries = 5; // Maximum number of retries
-			const retryDelay = 10; // Delay between retries in milliseconds (3 seconds)
+			const maxRetries = 5;
+			const retryDelay = 3000; // Fixed: Changed from 10ms to 3000ms
 
 			while (retryCount < maxRetries) {
 				try {
@@ -38,8 +80,8 @@ export default function CategoryFoodPage() {
 							setFoods(filteredFoods);
 						}
 
-						setLoading(false); // Data fetched successfully, stop loading
-						break; // Exit the retry loop
+						setLoading(false);
+						break;
 					} else {
 						throw new Error('Failed to load foods.');
 					}
@@ -47,11 +89,10 @@ export default function CategoryFoodPage() {
 					console.error('❌ Error fetching food list:', error.message);
 					retryCount++;
 					if (retryCount === maxRetries) {
-						// After max retries, keep loading state true (no error shown)
-						setLoading(true);
+						setError('Failed to load foods. Please try again.');
+						setLoading(false);
 						break;
 					}
-					// Wait before retrying
 					await new Promise((resolve) => setTimeout(resolve, retryDelay));
 				}
 			}
@@ -70,14 +111,18 @@ export default function CategoryFoodPage() {
 	);
 
 	return (
-		<div className="min-h-screen from-blue-50 to-blue-100 p-4">
-			{/* Container with max-width for desktop */}
+		<div className="min-h-screen bg-gradient-to-b from-blue-50 to-blue-100 p-3">
+			<style>{styles}</style>
 			<div className="max-w-[748px] mx-auto">
+				{/* Header */}
 				<div className="flex justify-between items-center mb-4">
-					<button onClick={() => navigate(-1)} className="text-blue-600">
-						<FaArrowLeft size={20} />
+					<button
+						onClick={() => navigate(-1)}
+						className="text-blue-700 p-2 rounded-full hover:bg-blue-100 transition-colors"
+					>
+						<FaArrowLeft size={18} />
 					</button>
-					<h1 className="text-xl font-bold text-gray-800">
+					<h1 className="text-lg font-bold text-gray-800">
 						{category.toLowerCase() === 'all'
 							? 'All Foods'
 							: `${category.charAt(0).toUpperCase() + category.slice(1)} Foods`}
@@ -92,20 +137,26 @@ export default function CategoryFoodPage() {
 						placeholder="Search within category"
 						value={searchQuery}
 						onChange={handleSearchChange}
-						className="w-full p-3 pl-10 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-600"
-						disabled={loading} // Disable search while loading
+						className="w-full p-2.5 pl-9 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm shadow-sm"
+						disabled={loading}
 					/>
 					<FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
 				</div>
 
+				{/* Error Message */}
+				{error && (
+					<p className="text-red-500 text-sm text-center mb-4">{error}</p>
+				)}
+
+				{/* Food Grid or Loading State */}
 				{loading ? (
-					<SkeletonLoader /> // Show skeleton loader while fetching
+					<SkeletonLoader />
 				) : filteredFoods.length > 0 ? (
-					<div className="grid grid-cols-2 gap-4">
+					<div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-3">
 						{filteredFoods.map((food) => (
 							<div
 								key={food.id}
-								className="bg-[#F5F5F5] rounded-[20px] shadow p-4 cursor-pointer"
+								className="food-card bg-[#F8F8F8] rounded-xl shadow-sm p-2.5 cursor-pointer"
 								onClick={() =>
 									navigate('/ar-view', {
 										state: {
@@ -113,19 +164,17 @@ export default function CategoryFoodPage() {
 											foodDetails: food,
 										},
 									})
-								}>
+								}
+							>
 								<img
-									src={
-										`${food.normal_picture}` ||
-										'https://via.placeholder.com/150'
-									}
+									src={food.normal_picture || 'https://via.placeholder.com/150'}
 									alt={food.item_name}
-									className="w-full h-[18vh] object-cover rounded-lg mb-2"
+									className="w-full h-28 object-cover rounded-lg mb-2"
 								/>
-								<h4 className="text-md text-black font-semibold mb-1 truncate w-full">
+								<h4 className="text-sm font-semibold text-gray-800 truncate">
 									{food.item_name}
 								</h4>
-								<div className="flex justify-between items-center text-sm text-gray-600">
+								<div className="flex justify-between items-center text-xs text-gray-600 mt-1">
 									<span>{food.price || '৳29.00'} BDT</span>
 									<span>⏰ {food.time || '4.8'}</span>
 								</div>
@@ -133,9 +182,9 @@ export default function CategoryFoodPage() {
 						))}
 					</div>
 				) : (
-					<div className="flex flex-col items-center justify-center py-8">
-						<FaSearch className="text-gray-400 text-6xl mb-4" />
-						<p className="text-gray-600 text-center">
+					<div className="flex flex-col items-center justify-center py-6">
+						<FaSearch className="text-gray-400 text-4xl mb-2" />
+						<p className="text-gray-600 text-sm text-center">
 							No foods found in this category.
 						</p>
 					</div>
