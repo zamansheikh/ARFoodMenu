@@ -15,18 +15,40 @@ import axiosInstance from '../component/axiosInstance';
 import SkeletonLoader from '../component/SkeletonLoader'; // Reusable card skeleton
 import { GiChickenOven } from 'react-icons/gi';
 
+
+// Custom CSS for scrollbar hiding and enhanced styling
+const styles = `
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  .scrollbar-hide {
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
+  }
+  .food-card {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+  .food-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+  .category-button {
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+`;
+
 // Mapping of categories to icons
 const categoryIcons = {
-	All: <MdFastfood size={32} />,
-	Burgers: <FaHamburger size={32} />,
-	Pizza: <FaPizzaSlice size={32} />,
-	Chicken: <GiChickenOven size={32} />,
-	Rice: <MdRiceBowl size={32} />,
-	Combo: <FaUtensils size={32} />,
-	Drinks: <FaGlassWhiskey size={32} />,
+	All: <MdFastfood size={28} />,
+	Burgers: <FaHamburger size={28} />,
+	Pizza: <FaPizzaSlice size={28} />,
+	Chicken: <GiChickenOven size={28} />,
+	Rice: <MdRiceBowl size={28} />,
+	Combo: <FaUtensils size={28} />,
+	Drinks: <FaGlassWhiskey size={28} />,
 };
 
-// Function to get dynamic slider settings based on the number of items
+// Function to get dynamic slider settings
 const getSliderSettings = (itemCount) => {
 	const defaultSlidesToShow = 2;
 	const slidesToShow = Math.min(itemCount, defaultSlidesToShow);
@@ -40,10 +62,18 @@ const getSliderSettings = (itemCount) => {
 		slidesToScroll: 1,
 		responsive: [
 			{
+				breakpoint: 1024,
+				settings: {
+					slidesToShow: 2,
+					slidesToScroll: 1,
+				},
+			},
+			{
 				breakpoint: 640,
 				settings: {
-					slidesToShow: slidesToShow,
+					slidesToShow: 2, // Always show 2 items in mobile view
 					slidesToScroll: 1,
+					arrows: false, // Hide arrows on mobile for cleaner look
 				},
 			},
 		],
@@ -53,14 +83,14 @@ const getSliderSettings = (itemCount) => {
 // Circle Skeleton for Categories
 const CircleSkeleton = () => (
 	<div className="flex flex-col items-center flex-shrink-0">
-		<div className="p-3 rounded-full bg-gray-300 animate-pulse w-12 h-12"></div>
-		<div className="h-2.5 bg-gray-200 rounded-full w-12 mt-1 animate-pulse"></div>
+		<div className="p-3 rounded-full bg-gray-200 animate-pulse w-10 h-10"></div>
+		<div className="h-2 bg-gray-200 rounded-full w-12 mt-1 animate-pulse"></div>
 	</div>
 );
 
-// Category Skeleton Loader (4 circles)
+// Category Skeleton Loader
 const CategorySkeletonLoader = () => (
-	<div className="flex space-x-4 overflow-x-auto scrollbar-hide">
+	<div className="flex space-x-3 overflow-x-auto scrollbar-hide px-2">
 		{Array(4)
 			.fill(0)
 			.map((_, index) => (
@@ -77,20 +107,18 @@ export default function ARMenu() {
 	const [loading, setLoading] = useState(true);
 	const navigate = useNavigate();
 
-	// Fetch food data from the API with retry logic
+	// Fetch food data from the API
 	useEffect(() => {
 		const fetchFoods = async () => {
-			setLoading(true); // Keep loading true until successful fetch
+			setLoading(true);
 			let retryCount = 0;
-			const maxRetries = 5; // Maximum number of retries
-			const retryDelay = 3000; // Delay between retries in milliseconds (3 seconds)
+			const maxRetries = 5;
+			const retryDelay = 3000;
 
 			while (retryCount < maxRetries) {
 				try {
 					const response = await axiosInstance.get('user_pov/get_all_food/6/');
 					if (response.status === 200) {
-						console.log('✅ Food List Fetched:', response.data);
-
 						const flattenedFoods = response.data.flatMap((category) =>
 							category.foods.map((food) => ({
 								...food,
@@ -106,11 +134,10 @@ export default function ARMenu() {
 						const uniqueCategories = response.data
 							.filter((category) => category.foods.length > 0)
 							.map((category) => category.category_name);
-						const output = [...new Set(uniqueCategories)];
-						setCategories(['All', ...output]);
+						setCategories(['All', ...new Set(uniqueCategories)]);
 
-						setLoading(false); // Data fetched successfully, stop loading
-						break; // Exit the retry loop
+						setLoading(false);
+						break;
 					} else {
 						throw new Error('Failed to load foods.');
 					}
@@ -118,11 +145,9 @@ export default function ARMenu() {
 					console.error('❌ Error fetching food list:', error.message);
 					retryCount++;
 					if (retryCount === maxRetries) {
-						// After max retries, keep loading state true (no error shown)
 						setLoading(true);
 						break;
 					}
-					// Wait before retrying
 					await new Promise((resolve) => setTimeout(resolve, retryDelay));
 				}
 			}
@@ -131,15 +156,13 @@ export default function ARMenu() {
 		fetchFoods();
 	}, []);
 
-	// Group foods by category and limit to 4 per category, only for categories with foods
+	// Group foods by category (limit to 4 per category)
 	const groupedFoods = categories
 		.filter((category) => category !== 'All')
 		.map((category) => ({
 			name: category,
 			foods: allFoods
-				.filter(
-					(food) => food.category.toLowerCase() === category.toLowerCase()
-				)
+				.filter((food) => food.category.toLowerCase() === category.toLowerCase())
 				.slice(0, 4),
 		}))
 		.filter((group) => group.foods.length > 0);
@@ -149,9 +172,8 @@ export default function ARMenu() {
 		selectedCategory === 'All'
 			? allFoods
 			: allFoods.filter(
-					(food) =>
-						food.category.toLowerCase() === selectedCategory.toLowerCase()
-			  );
+				(food) => food.category.toLowerCase() === selectedCategory.toLowerCase()
+			);
 
 	// Filter foods based on search query
 	const searchResults = allFoods.filter((food) =>
@@ -173,15 +195,15 @@ export default function ARMenu() {
 	};
 
 	return (
-		<div className="min-h-screen bg-[#ffff] p-3">
-			{/* Container with max-width for desktop */}
+		<div className="min-h-screen bg-white p-3">
+			<style>{styles}</style>
 			<div className="max-w-[748px] mx-auto">
 				{/* Banner */}
-				<div className="mb-6">
+				<div className="mb-4">
 					<video
 						src={banner}
 						alt="Banner"
-						className="w-full max-h-[300px] object-cover rounded-lg"
+						className="w-full h-[180px] sm:h-[220px] md:h-[260px] object-cover rounded-xl shadow-sm"
 						autoPlay
 						loop
 						muted
@@ -196,8 +218,8 @@ export default function ARMenu() {
 						placeholder="Search for food"
 						value={searchQuery}
 						onChange={handleSearchChange}
-						className="w-full p-3 pl-10 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-600"
-						disabled={loading} // Disable search while loading
+						className="w-full p-2.5 pl-9 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm shadow-sm"
+						disabled={loading}
 					/>
 					<FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
 				</div>
@@ -205,12 +227,10 @@ export default function ARMenu() {
 				{/* Loading Skeleton or Content */}
 				{loading ? (
 					<>
-						{/* Category Skeleton */}
 						<div className="mb-4">
-							<h3 className="text-lg font-bold text-gray-800 mb-2">Category</h3>
+							<h3 className="text-base font-bold text-gray-800 mb-2">Category</h3>
 							<CategorySkeletonLoader />
 						</div>
-						{/* Card Skeleton */}
 						<SkeletonLoader />
 					</>
 				) : (
@@ -218,30 +238,24 @@ export default function ARMenu() {
 						{/* Search Results Section */}
 						{searchQuery && (
 							<div className="mb-4">
-								<h3 className="text-lg font-bold text-gray-800 mb-2">
-									Search Results
-								</h3>
+								<h3 className="text-base font-bold text-gray-800 mb-2">Search Results</h3>
 								{searchResults.length > 0 ? (
 									<div className="grid grid-cols-2 gap-3">
 										{searchResults.map((food) => (
 											<div
 												key={food.id}
-												className="bg-[#F5F5F5] rounded-[8px] shadow p-3 cursor-pointer"
-												onClick={() =>
-													handleFoodClick(food.three_d_picture, food)
-												}>
+												className="food-card bg-[#F8F8F8] rounded-xl shadow-sm p-2.5 cursor-pointer"
+												onClick={() => handleFoodClick(food.three_d_picture, food)}
+											>
 												<img
-													src={
-														`${food.normal_picture}` ||
-														'https://via.placeholder.com/150'
-													}
+													src={food.normal_picture || 'https://via.placeholder.com/150'}
 													alt={food.item_name}
-													className="w-full h-36 object-cover rounded-lg mb-2"
+													className="w-full h-28 object-cover rounded-lg mb-2"
 												/>
-												<h4 className="text-md text-black font-semibold mb-1 truncate w-full">
+												<h4 className="text-sm text-black font-semibold mb-1 truncate">
 													{food.item_name}
 												</h4>
-												<div className="flex justify-between items-center text-sm text-gray-600">
+												<div className="flex justify-between items-center text-xs text-gray-600">
 													<span>{food.price || '৳29.00'} BDT</span>
 													<span>⏰ {food.time || '4.8'}</span>
 												</div>
@@ -249,9 +263,9 @@ export default function ARMenu() {
 										))}
 									</div>
 								) : (
-									<div className="flex flex-col items-center justify-center py-8">
-										<FaSearch className="text-gray-400 text-6xl mb-4" />
-										<p className="text-gray-600 text-center">
+									<div className="flex flex-col items-center justify-center py-6">
+										<FaSearch className="text-gray-400 text-4xl mb-2" />
+										<p className="text-gray-600 text-sm text-center">
 											No foods found matching your search.
 										</p>
 									</div>
@@ -263,24 +277,23 @@ export default function ARMenu() {
 							<>
 								{/* Category Buttons */}
 								<div className="mb-4">
-									<h3 className="text-lg font-bold text-gray-800 mb-2">
-										Category
-									</h3>
-									<div className="flex space-x-4 overflow-x-auto scrollbar-hide">
+									<h3 className="text-base font-bold text-gray-800 mb-2">Category</h3>
+									<div className="flex space-x-3 overflow-x-auto scrollbar-hide px-2">
 										{categories.map((category, index) => (
 											<button
 												key={index}
-												className="flex flex-col items-center flex-shrink-0"
-												onClick={() => handleCategoryClick(category)}>
+												className="category-button flex flex-col items-center flex-shrink-0 focus:outline-none"
+												onClick={() => handleCategoryClick(category)}
+											>
 												<div
-													className={`p-3 rounded-full ${
-														selectedCategory === category
-															? 'bg-blue-800 text-white'
-															: 'bg-gray-200'
-													}`}>
-													{categoryIcons[category] || <MdFastfood size={32} />}
+													className={`p-2.5 rounded-full ${selectedCategory === category
+														? 'bg-blue-700 text-white'
+														: 'bg-gray-100 text-gray-600'
+														}`}
+												>
+													{categoryIcons[category] || <MdFastfood size={28} />}
 												</div>
-												<span className="text-sm mt-1">{category}</span>
+												<span className="text-xs mt-1">{category}</span>
 											</button>
 										))}
 									</div>
@@ -289,41 +302,38 @@ export default function ARMenu() {
 								{/* Selected Category Food */}
 								<div className="mb-4">
 									<div className="flex justify-between items-center mb-2">
-										<h3 className="text-lg font-bold text-gray-800">
+										<h3 className="text-base font-bold text-gray-800">
 											{selectedCategory} Food
 										</h3>
 										<Link
 											to={`/category-food/${selectedCategory.toLowerCase()}`}
-											className="text-blue-800">
+											className="text-blue-700 text-xs"
+										>
 											See all
 										</Link>
 									</div>
 									{filteredFoods.length > 0 ? (
 										filteredFoods.length === 1 ? (
-											<div className="p-2 w-[50%]">
+											<div className="p-2 w-1/2">
 												<div
-													className="bg-[#F5F5F5] rounded-[8px] shadow p-3 cursor-pointer"
+													className="food-card bg-[#F8F8F8] rounded-xl shadow-sm p-2.5 cursor-pointer"
 													onClick={() =>
-														handleFoodClick(
-															filteredFoods[0].three_d_picture,
-															filteredFoods[0]
-														)
-													}>
+														handleFoodClick(filteredFoods[0].three_d_picture, filteredFoods[0])
+													}
+												>
 													<img
 														src={
-															`${filteredFoods[0].normal_picture}` ||
+															filteredFoods[0].normal_picture ||
 															'https://via.placeholder.com/150'
 														}
 														alt={filteredFoods[0].item_name}
-														className="w-full  h-36 object-cover rounded-lg mb-2"
+														className="w-full h-28 object-cover rounded-lg mb-2"
 													/>
-													<h4 className="text-md text-black font-semibold mb-1">
+													<h4 className="text-sm text-black font-semibold mb-1 truncate">
 														{filteredFoods[0].item_name}
 													</h4>
-													<div className="flex justify-between items-center text-sm text-gray-600">
-														<span>
-															{filteredFoods[0].price || '৳29.00'} BDT
-														</span>
+													<div className="flex justify-between items-center text-xs text-gray-600">
+														<span>{filteredFoods[0].price || '৳29.00'} BDT</span>
 														<span>⏰ {filteredFoods[0].time || '4.8'}</span>
 													</div>
 												</div>
@@ -333,22 +343,18 @@ export default function ARMenu() {
 												{filteredFoods.map((food) => (
 													<div key={food.id} className="p-2">
 														<div
-															className="bg-[#F5F5F5] rounded-[8px] shadow p-3 cursor-pointer"
-															onClick={() =>
-																handleFoodClick(food.three_d_picture, food)
-															}>
+															className="food-card bg-[#F8F8F8] rounded-xl shadow-sm p-2.5 cursor-pointer"
+															onClick={() => handleFoodClick(food.three_d_picture, food)}
+														>
 															<img
-																src={
-																	`${food.normal_picture}` ||
-																	'https://via.placeholder.com/150'
-																}
+																src={food.normal_picture || 'https://via.placeholder.com/150'}
 																alt={food.item_name}
-																className="w-full h-36 object-cover rounded-lg mb-2"
+																className="w-full h-28 object-cover rounded-lg mb-2"
 															/>
-															<h4 className="text-md text-black font-semibold mb-1 truncate w-full">
+															<h4 className="text-sm text-black font-semibold mb-1 truncate">
 																{food.item_name}
 															</h4>
-															<div className="flex justify-between items-center text-sm text-gray-600">
+															<div className="flex justify-between items-center text-xs text-gray-600">
 																<span>{food.price || '৳29.00'} BDT</span>
 																<span>⏰ {food.time || '4.8'}</span>
 															</div>
@@ -358,52 +364,71 @@ export default function ARMenu() {
 											</Slider>
 										)
 									) : (
-										<p className="text-gray-600">
-											No foods found in this category.
-										</p>
+										<p className="text-gray-600 text-sm">No foods found in this category.</p>
 									)}
 								</div>
 
-								{/* All Foods by Category (Limited to 4 per Category) */}
+								{/* All Foods by Category */}
 								{selectedCategory === 'All' && (
 									<div>
 										{groupedFoods.map((group) => (
 											<div key={group.name} className="mb-4">
 												<div className="flex justify-between items-center mb-2">
-													<h3 className="text-lg font-bold text-gray-800">
+													<h3 className="text-base font-bold text-gray-800">
 														{group.name} Food
 													</h3>
 													<Link
 														to={`/category-food/${group.name.toLowerCase()}`}
-														className="text-blue-800">
+														className="text-blue-700 text-xs"
+													>
 														See all
 													</Link>
 												</div>
 												{group.foods.length > 0 ? (
-													group.foods.length > 1 ? (
+													group.foods.length === 1 ? (
+														<div className="p-2 w-1/2">
+															<div
+																className="food-card bg-[#F8F8F8] rounded-xl shadow-sm p-2.5 cursor-pointer"
+																onClick={() =>
+																	handleFoodClick(group.foods[0].three_d_picture, group.foods[0])
+																}
+															>
+																<img
+																	src={
+																		group.foods[0].normal_picture ||
+																		'https://via.placeholder.com/150'
+																	}
+																	alt={group.foods[0].item_name}
+																	className="w-full h-28 object-cover rounded-lg mb-2"
+																/>
+																<h4 className="text-sm text-black font-semibold mb-1 truncate">
+																	{group.foods[0].item_name}
+																</h4>
+																<div className="flex justify-between items-center text-xs text-gray-600">
+																	<span>{group.foods[0].price || '৳29.00'} BDT</span>
+																	<span>⏰ {group.foods[0].time || '4.8'}</span>
+																</div>
+															</div>
+														</div>
+													) : (
 														<Slider {...getSliderSettings(group.foods.length)}>
 															{group.foods.map((food) => (
 																<div key={food.id} className="p-2">
 																	<div
-																		className="bg-[#F5F5F5] rounded-[8px] shadow p-3 cursor-pointer"
-																		onClick={() =>
-																			handleFoodClick(
-																				food.three_d_picture,
-																				food
-																			)
-																		}>
+																		className="food-card bg-[#F8F8F8] rounded-xl shadow-sm p-2.5 cursor-pointer"
+																		onClick={() => handleFoodClick(food.three_d_picture, food)}
+																	>
 																		<img
 																			src={
-																				`${food.normal_picture}` ||
-																				'https://via.placeholder.com/150'
+																				food.normal_picture || 'https://via.placeholder.com/150'
 																			}
 																			alt={food.item_name}
-																			className="w-full h-36 object-cover rounded-lg mb-2"
+																			className="w-full h-28 object-cover rounded-lg mb-2"
 																		/>
-																		<h4 className="text-md text-black font-semibold mb-1 truncate w-full">
+																		<h4 className="text-sm text-black font-semibold mb-1 truncate">
 																			{food.item_name}
 																		</h4>
-																		<div className="flex justify-between items-center text-sm text-gray-600">
+																		<div className="flex justify-between items-center text-xs text-gray-600">
 																			<span>{food.price || '৳29.00'} BDT</span>
 																			<span>⏰ {food.time || '4.8'}</span>
 																		</div>
@@ -411,38 +436,9 @@ export default function ARMenu() {
 																</div>
 															))}
 														</Slider>
-													) : (
-														<div className="p-2 w-[50%]">
-															<div
-																className="bg-[#F5F5F5] rounded-[8px] shadow p-3 cursor-pointer"
-																onClick={() =>
-																	handleFoodClick(
-																		group.foods[0].three_d_picture,
-																		group.foods[0]
-																	)
-																}>
-																<img
-																	src={
-																		`${group.foods[0].normal_picture}` ||
-																		'https://via.placeholder.com/150'
-																	}
-																	alt={group.foods[0].item_name}
-																	className="w-full h-36 object-cover rounded-lg mb-2"
-																/>
-																<h4 className="text-md text-black font-semibold mb-1">
-																	{group.foods[0].item_name}
-																</h4>
-																<div className="flex justify-between items-center text-sm text-gray-600">
-																	<span>
-																		{group.foods[0].price || '৳29.00'} BDT
-																	</span>
-																	<span>⏰ {group.foods[0].time || '4.8'}</span>
-																</div>
-															</div>
-														</div>
 													)
 												) : (
-													<p className="text-gray-600">
+													<p className="text-gray-600 text-sm">
 														No foods found in {group.name} category.
 													</p>
 												)}
